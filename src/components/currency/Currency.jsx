@@ -1,39 +1,28 @@
-import React from "react";
+import React, { useState } from "react";
 import { Form, Header, Col, Row, FormGroup, Label, Input, Button } from 'reactstrap';
 import axios from 'axios'
 import './currency.css'
 import * as BiIcons from 'react-icons/bi'
+import { data } from "./data";
 
 const Currency = () => {
   const [currencies, setCurrencies] = React.useState([]);
   const [baseCurrency, setBaseCurrency] = React.useState("");
-  const [baseSymbols, setBaseSymbols] = React.useState("");
-  const [toSymbols, setToSymbols] = React.useState("");
+  const [baseSymbols, setBaseSymbols] = useState('USD');
+  const [toSymbols, setToSymbols] = useState('EUR');
   const [toCurrency, setToCurrency] = React.useState("");
   const [amount, setAmount] = React.useState('1');
   const [calculatedAmount, setcalculatedAmount] = React.useState(1);
   const [errorText, setErrorText] = React.useState("");
-  const [rate, setRate] = React.useState([])
+  const [rate, setRate] = React.useState('')
 
-  // const CurrencyConvert = () => {
-  // React.useEffect(() => {
-  //   if (baseCurrency !== "" && baseCurrency.length > 2 && toCurrency !== "" && toCurrency.length > 2 && amount > 0) {
-  //     axios.length(`https://free.currconv.com/api/v7/convert?q=${baseCurrency}_${toCurrency}&compact=ultra&apiKey=549c88f986593b07825e`)
-  //       .then((res) => {
-  //         console.log(res)
-  //       }).catch((err) => {
-  //         console.log(err)
-  //       })
-  //   }
-  // }, [])
+
 
   // get all currency
   React.useEffect(() => {
-
     axios.get(`https://api.fastforex.io/currencies?api_key=274cc469c2-b15605ca8b-qy12cq`)
       .then((res) => {
         const data = res.data.currencies
-
         setCurrencies(data)
         console.log(data)
       }).catch((err) => {
@@ -58,23 +47,32 @@ const Currency = () => {
   }, [toCurrency])
 
   const handleConvert = () => {
+    if (baseSymbols !== "" && baseSymbols.length > 2 && toSymbols !== "" && toSymbols.length > 2) {
+      axios.get(`https://api.exchangerate.host/convert?from=${baseSymbols}&to=${toSymbols}`)
+        .then((res) => {
+          const data = res.data
+          const rate = res.data.info.rate
+          console.log(rate)
+          setRate(rate)
+          if (rate) {
+            setcalculatedAmount(amount * rate);
+            setErrorText('')
+          } else {
+            setErrorText(`can not convert from ${baseSymbols} to ${toSymbols}`)
+          }
 
-    axios.get(`https://api.fastforex.io/convert?from=${amount}&to=${baseSymbols}&amount=${toSymbols}&api_key=274cc469c2-b15605ca8b-qy12cq`)
-      .then((res) => {
-        const data = res
-        console.log(data)
-
-      }).catch((err) => {
-
-        console.log(err)
-      })
+        }).catch((e) => {
+          setErrorText(e.res.data.error)
+          console.log(e)
+        })
+    }
   }
 
 
 
   React.useEffect(() => {
     handleConvert()
-  }, [amount, baseSymbols, toSymbols])
+  }, [baseSymbols, toSymbols, amount])
 
 
   const abv = Object.keys(currencies);
@@ -86,7 +84,17 @@ const Currency = () => {
     return [...acc, (`${current} - ${name[index]}`)]
   }, [])
 
-  console.log(amount)
+
+  // const GetSymbols = ({ item }) => {
+  //   return (
+  //     <select>
+  // {data.map((item, index) =>
+  //       (<GetSymbols key={index} item={item} />
+  //       )
+  //       )}>
+  //   )
+  // }
+  //     </select>
 
 
 
@@ -101,9 +109,9 @@ const Currency = () => {
           <h1 className='header'>Currency converter</h1>
 
           <div className="currency-display">
-            <p>From : {baseSymbols}</p>
-            <p>To : {toSymbols}</p>
-            <p>equals rate ???</p>
+            {baseSymbols && <p>From : {baseSymbols}</p>}
+            {toSymbols && <p>To : {toSymbols}</p>}
+            {baseSymbols && toSymbols && <p>Rate : {rate}</p>}
           </div>
 
 
@@ -115,7 +123,12 @@ const Currency = () => {
             <div className="inputs">
               <label htmlFor="amount">Amount</label>
               <div className='inputs-div'>
-                <span>$</span>
+                {/* {data.map((item, index) =>
+                (<GetSymbols key={index} item={item} />
+                )
+                )} */}
+                {/* <GetSymbols /> */}
+                <span></span>
                 <input type="text" name='amount' placeholder="Amount" value={amount}
                   onChange={e => {
                     setAmount(e.target.value);
@@ -130,7 +143,7 @@ const Currency = () => {
                 {/* <span>$</span> */}
                 <select name="from" id="from" onChange={e => {
                   setBaseCurrency(e.target.value.toUpperCase());
-                }}  >
+                }} >
                   <option > Convert From</option>
                   {con.map((currency, index) =>
                   (<option key={index} >
@@ -165,19 +178,19 @@ const Currency = () => {
           </form>
           <button className="btn">Convert</button>
 
-          {/* {errorText && <p style={{ color: "red", fontSize: 18 }}>{errorText}</p>} */}
+          {errorText && <p style={{ color: "red", fontSize: 18 }}>{errorText}</p>}
 
-          <div className='output'>
+          {baseSymbols && toSymbols && <div className='output'>
             <div>
-              <p>$ {amount} <span>{baseCurrency}</span> = <span> {toCurrency}</span></p>
+              <p>{amount} <span>{baseCurrency}</span> = <span> {calculatedAmount.toFixed(2)} {toCurrency}</span></p>
             </div>
             <div>
-              <p>{amount} {baseSymbols} = rate??? {toSymbols}</p>
+              <p>{amount} {baseSymbols} = {rate} {toSymbols}</p>
             </div>
             <div>
-              <p>rate??? {toSymbols} = {amount} {baseSymbols}</p>
+              <p> {rate} {toSymbols} = {amount} {baseSymbols}</p>
             </div>
-          </div>
+          </div>}
 
           <p className="info">We use midmarket rates
             View transfer quote <BiIcons.BiInfoCircle />
